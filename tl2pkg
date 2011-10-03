@@ -1,8 +1,149 @@
 #!/usr/pkg/bin/ruby19
 # -*- ruby -*-
 
+def load_files(catalogue)
+  files = []
+  line = catalogue.gets
+  while line[0] == ' '
+    files << line[1..-2]
+    line = catalogue.gets
+  end
+  return files, line
+end
+
+class TLPackage
+  def initialize(name, catalogue)
+    @longdesc = []
+    @depend = []
+    @execute = []
+    @postaction = []
+    @docfiles = []
+    @srcfiles = []
+    line = catalogue.gets
+    while line
+      break if line == "\n"
+      /^(?<key>\S+)\s+(?<value>.+)$/ =~ (line)
+      return nil if not key
+      if key == 'name' then
+        @name = value
+      elsif key == 'category' then
+        @category = value
+      elsif key == 'revision' then
+        @revision = Integer(value)
+      elsif key == 'catalogue' then
+        @catalogue = value
+      elsif key == 'shortdesc' then
+        @shortdesc = value
+      elsif key == 'relocated' then
+        @relocated = value
+      elsif key == 'longdesc' then
+        @longdesc << value
+      elsif key == 'depend' then
+        @depend << value
+      elsif key == 'execute' then
+        @execute << value
+      elsif key == 'postaction' then
+        @postaction << value
+      elsif key == 'containersize' then
+        @containersize = Integer(value)
+      elsif key == 'containermd5' then
+        @containermd5 = value
+      elsif key == 'doccontainersize' then
+        @doccontainersize = Integer(value)
+      elsif key == 'doccontainermd5' then
+        @doccontainermd5 = value
+      elsif key == 'docfiles' then
+        @docfiles_size = Integer(/size=(.*)/.match(value)[1])
+        @docfiles, line = load_files(catalogue)
+        next
+      elsif key == 'srccontainersize' then
+        @srccontainersize = Integer(value)
+      elsif key == 'srccontainermd5' then
+        @srccontainermd5 = value
+      elsif key == 'srcfiles' then
+        @srcfiles_size = Integer(/size=(.*)/.match(value)[1])
+        @srcfiles, line = load_files(catalogue)
+        next
+      elsif key == 'runfiles' then
+        @runfiles_size = Integer(/size=(.*)/.match(value)[1])
+        @runfiles, line = load_files(catalogue)
+        next
+      elsif key == 'catalogue-ctan' then
+        @catalogue_ctan = value
+      elsif key == 'catalogue-date' then
+        @catalogue_date = value
+      elsif key == 'catalogue-license' then
+        @catalogue_license = value
+      elsif key == 'catalogue-version' then
+        @catalogue_version = value
+      else
+        puts "WARNING: Unknown key: #{key}"
+      end
+      line = catalogue.gets
+    end
+    @name = name if not @name
+  end
+
+  def to_s
+    str = <<PACKAGE_END
+name #{@name}
+category #{@category}
+revision #{@revision}
+PACKAGE_END
+    str << "catalogue #{@catalogue}\n" if @catalogue
+    str << "shortdesc #{@shortdesc}\n" if @shortdesc
+    str << "relocated #{@relocated}\n" if @relocated
+    @longdesc.each {|l| str << "longdesc #{l}\n" } if @longdesc
+    @depend.each {|d| str << "depend #{d}\n" } if @depend
+    @execute.each {|e| str << "execute #{e}\n" } if @execute
+    @postaction.each {|e| str << "postaction #{e}\n" } if @postaction
+    str << "containersize #{@containersize}\n" if @containersize
+    str << "containermd5 #{@containermd5}\n" if @containermd5
+    str << "doccontainersize #{@doccontainersize}\n" if @doccontainersize
+    str << "doccontainermd5 #{@doccontainermd5}\n" if @doccontainermd5
+    if @docfiles.size > 0 then
+      str << "docfiles size=#{@docfiles_size}\n"
+      @docfiles.each {|d| str << " #{d}\n" }
+    end
+    str << "srccontainersize #{@srccontainersize}\n" if @srccontainersize
+    str << "srccontainermd5 #{@srccontainermd5}\n" if @srccontainermd5
+    if @srcfiles.size > 0 then
+      str << "srcfiles size=#{@srcfiles_size}\n"
+      @srcfiles.each {|d| str << " #{d}\n" }
+    end
+    if @runfiles.size > 0 then
+      str << "runfiles size=#{@runfiles_size}\n"
+      @runfiles.each {|d| str << " #{d}\n" }
+    end
+    str << "catalogue-ctan #{@catalogue_ctan}\n" if @catalogue_ctan
+    str << "catalogue-date #{@catalogue_date}\n" if @catalogue_date
+    str << "catalogue-license #{@catalogue_license}\n" if @catalogue_license
+    str << "catalogue-version #{@catalogue_version}\n" if @catalogue_version
+    str
+  end
+end
+
 def usage
   puts 'Usage: tl2pkg <command> [args]'
+end
+
+def load_tlpkg(pkgname)
+  pkg_begin = "name #{pkgname}\n"
+  tlpkg = nil
+  open('texlive.tlpdb') do |file|
+    while (line = file.gets)
+      if line == pkg_begin then
+        tlpkg = TLPackage.new(pkgname, file)
+        break
+      end
+    end
+  end
+  return tlpkg
+end
+
+def create_pkg(pkgname)
+  tlpkg = load_tlpkg(pkgname)
+  puts tlpkg
 end
 
 def fetch_tlpdb(filename)
@@ -18,16 +159,33 @@ def fetch_tlpdb(filename)
   end
 end
 
+def show_pkg(pkgname)
+  tlpkg = load_tlpkg(pkgname)
+  puts tlpkg
+end
+
 if ARGV.size < 1 then
   usage
   exit 1
 end
 
-if ARGV[0] == 'dbfetch' then
+if ARGV[0] == 'create' then
+  if ARGV.size < 2 then
+    puts "Usage: tl2pkg create <pkgname>"
+    exit 1
+  end
+  create_pkg(ARGV[1])
+elsif ARGV[0] == 'dbfetch' then
   print 'Downloading the TeX Live package database ... '
   $stdout.flush
   fetch_tlpdb('texlive.tlpdb')
   print "done.\n"
+elsif ARGV[0] == 'show' then
+  if ARGV.size < 2 then
+    puts "Usage: tl2pkg show <pkgname>"
+    exit 1
+  end
+  show_pkg(ARGV[1])
 else
   print "Unknown command: #{ARGV[0]}\n"
 end
