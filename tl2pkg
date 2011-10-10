@@ -84,6 +84,47 @@ class TLPackage
     @name = name if not @name
   end
 
+  def to_pkgsrc(pkgdir)
+    pwd = Dir.pwd
+    Dir.chdir(pkgdir)
+
+    open('DESCR', 'w') do |file|
+      @longdesc.each {|line| file << line << "\n" }
+    end
+
+    open('Makefile', 'w') do |file|
+      file << <<MAKEFILE_HEADER
+# $NetBSD$
+
+DISTNAME=	#{@name}
+PKGNAME=	tex-${DISTNAME}-#{@catalogue_version}
+TEXLIVE_REV=	#{@revision}
+
+MAINTAINER=	pkgsrc-users@NetBSD.org
+COMMENT=	#{@shortdesc}
+MAKEFILE_HEADER
+      file << "LICENSE=	#{@catalogue_license}\n" if @catalogue_license
+
+      file << <<MAKEFILE_TAIL
+
+.include "../../print/texlive/package.mk"
+.include "../../mk/bsd.pkg.mk"
+MAKEFILE_TAIL
+    end
+
+    open('PLIST', 'w') do |file|
+      file << "@comment $NetBSD$\n"
+      @runfiles.each do |entry|
+        file << entry << "\n"
+      end
+    end
+
+    open('distinfo', 'w') do |file|
+    end
+
+    Dir.chdir(pwd)
+  end
+
   def to_s
     str = <<PACKAGE_END
 name #{@name}
@@ -143,7 +184,14 @@ end
 
 def create_pkg(pkgname)
   tlpkg = load_tlpkg(pkgname)
-  puts tlpkg
+  pkgdir = "/usr/pkgsrc/print/tex-#{pkgname}"
+  begin
+    Dir.mkdir(pkgdir)
+  rescue SystemCallError
+    puts "Cannot create a directory: #{pkgdir}"
+    return
+  end
+  tlpkg.to_pkgsrc(pkgdir)
 end
 
 def fetch_tlpdb(filename)
