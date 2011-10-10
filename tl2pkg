@@ -92,12 +92,13 @@ class TLPackage
       @longdesc.each {|line| file << line << "\n" }
     end
 
+    pkg_version = (@catalogue_version or 2011)
     open('Makefile', 'w') do |file|
       file << <<MAKEFILE_HEADER
 # $NetBSD$
 
 DISTNAME=	#{@name}
-PKGNAME=	tex-${DISTNAME}-#{@catalogue_version}
+PKGNAME=	tex-${DISTNAME}-#{pkg_version}
 TEXLIVE_REV=	#{@revision}
 
 MAINTAINER=	pkgsrc-users@NetBSD.org
