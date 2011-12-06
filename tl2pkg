@@ -1,5 +1,4 @@
-#!/usr/pkg/bin/ruby19
-# -*- ruby -*-
+#!/usr/bin/env ruby
 
 def load_files(catalogue)
   files = []
