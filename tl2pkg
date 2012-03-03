@@ -83,7 +83,24 @@ class TLPackage
     @name = name if not @name
   end
 
-  def to_pkgsrc(pkgdir)
+  def to_pkgsrc(pkgsrcdir)
+    pkgdir = "#{pkgsrcdir}/print/tex-#{@name}"
+    docdir = "#{pkgdir}-doc"
+    begin
+      Dir.mkdir(pkgdir)
+    rescue SystemCallError
+      raise "Cannot create a directory: #{pkgdir}"
+    end
+    if @docfiles_size > 0 then
+      begin
+        Dir.mkdir(pkgdir + '-doc')
+      rescue SystemCallError
+        Dir.rmdir(pkgdir)
+        raise "Cannot create a directory: #{pkgdir}"
+        return
+      end
+    end
+
     pwd = Dir.pwd
     Dir.chdir(pkgdir)
 
@@ -184,14 +201,7 @@ end
 
 def create_pkg(pkgname)
   tlpkg = load_tlpkg(pkgname)
-  pkgdir = "/usr/pkgsrc/print/tex-#{pkgname}"
-  begin
-    Dir.mkdir(pkgdir)
-  rescue SystemCallError
-    puts "Cannot create a directory: #{pkgdir}"
-    return
-  end
-  tlpkg.to_pkgsrc(pkgdir)
+  tlpkg.to_pkgsrc('/usr/pkgsrc')
 end
 
 def fetch_tlpdb(filename)
