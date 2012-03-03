@@ -101,6 +101,16 @@ class TLPackage
       end
     end
 
+    pkg_version = (@catalogue_version or 2011)
+    if @catalogue_license then
+      if @catalogue_license == 'lppl' then
+        pkg_license = 'lppl-1.3c'
+      else
+        pkg_license = @catalogue_license
+      end
+    else
+      pkg_license = nil
+    end
     pwd = Dir.pwd
     Dir.chdir(pkgdir)
 
@@ -108,7 +118,10 @@ class TLPackage
       @longdesc.each {|line| file << line << "\n" }
     end
 
-    pkg_version = (@catalogue_version or 2011)
+    comment = @shortdesc
+    comment = comment.sub(/^A /, '').capitalize if comment.start_with?('A ')
+    comment = comment.sub(/\.$/, '')
+    
     open('Makefile', 'w') do |file|
       file << <<MAKEFILE_HEADER
 # $NetBSD$
@@ -118,9 +131,9 @@ PKGNAME=	tex-${DISTNAME}-#{pkg_version}
 TEXLIVE_REV=	#{@revision}
 
 MAINTAINER=	pkgsrc-users@NetBSD.org
-COMMENT=	#{@shortdesc}
+COMMENT=	#{comment}
 MAKEFILE_HEADER
-      file << "LICENSE=	#{@catalogue_license}\n" if @catalogue_license
+      file << "LICENSE=	#{pkg_license}\n" if pkg_license
 
       file << <<MAKEFILE_TAIL
 
@@ -132,7 +145,43 @@ MAKEFILE_TAIL
     open('PLIST', 'w') do |file|
       file << "@comment $NetBSD$\n"
       @runfiles.each do |entry|
-        file << entry << "\n"
+        file << entry.sub('RELOC', 'share/texmf-dist') << "\n"
+      end
+    end
+
+    open('distinfo', 'w') do |file|
+    end
+
+    Dir.chdir(docdir)
+
+    open('DESCR', 'w') do |file|
+      file << "This is documentation for tex-#{@name}.\n"
+    end
+
+    open('Makefile', 'w') do |file|
+      file << <<MAKEFILE_HEADER
+# $NetBSD$
+
+DISTNAME=	#{@name}.doc
+PKGNAME=	tex-${DISTNAME:S/./-/}-#{pkg_version}
+TEXLIVE_REV=	#{@revision}
+
+MAINTAINER=	pkgsrc-users@NetBSD.org
+COMMENT=	Documentation for tex-#{@name}
+MAKEFILE_HEADER
+      file << "LICENSE=	#{pkg_license}\n" if pkg_license
+
+      file << <<MAKEFILE_TAIL
+
+.include "../../print/texlive/package.mk"
+.include "../../mk/bsd.pkg.mk"
+MAKEFILE_TAIL
+    end
+
+    open('PLIST', 'w') do |file|
+      file << "@comment $NetBSD$\n"
+      @docfiles.each do |entry|
+        file << entry.sub('RELOC', 'share/texmf-dist').sub(/ details=.*/, '') << "\n"
       end
     end
 
