@@ -101,7 +101,7 @@ class TLPackage
       end
     end
 
-    pkg_version = (@catalogue_version or 2011)
+    pkg_version = (@catalogue_version or 2012)
     if @catalogue_license then
       if @catalogue_license == 'lppl' then
         pkg_license = 'lppl-1.3c'
