@@ -118,9 +118,13 @@ class TLPackage
       @longdesc.each {|line| file << line << "\n" }
     end
 
-    comment = @shortdesc
-    comment = comment.sub(/^A /, '').capitalize if comment.start_with?('A ')
-    comment = comment.sub(/\.$/, '')
+    if @shortdesc != nil
+      comment = @shortdesc
+      comment = comment.sub(/^A /, '').capitalize if comment.start_with?('A ')
+      comment = comment.sub(/\.$/, '')
+    else
+      comment = ''
+    end
     
     open('Makefile', 'w') do |file|
       file << <<MAKEFILE_HEADER
