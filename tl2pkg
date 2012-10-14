@@ -286,7 +286,7 @@ if ARGV[0] == 'create' then
     exit 1
   end
   create_pkg(ARGV[1])
-elsif ARGV[0] == 'dbfetch' then
+elsif ARGV[0] == 'fetch-tlpdb' then
   print 'Downloading the TeX Live package database ... '
   $stdout.flush
   fetch_tlpdb('texlive.tlpdb')
