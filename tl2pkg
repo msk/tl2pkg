@@ -257,15 +257,15 @@ def create_pkg(pkgname)
   tlpkg.to_pkgsrc('/usr/pkgsrc')
 end
 
-def fetch_tlpdb(filename)
+def fetch_tlpdb(server, path, localname)
   require 'net/http'
   require 'xz'
 
-  res = Net::HTTP.start('dante.ctan.org') {|http|
-    http.get('/get/systems/texlive/tlnet/tlpkg/texlive.tlpdb.xz')
+  res = Net::HTTP.start(server) {|http|
+    http.get(path)
   }
   tlpdb = XZ.decompress(res.body)
-  open(filename, 'w') do |file|
+  open(localname, 'w') do |file|
     file.write(tlpdb)
   end
 end
@@ -286,10 +286,19 @@ if ARGV[0] == 'create' then
     exit 1
   end
   create_pkg(ARGV[1])
+elsif ARGV[0] == 'fetch-ktug-tlpdb' then
+  print 'Downloading the KTUG TeX Live package database ... '
+  $stdout.flush
+  fetch_tlpdb('ftp.ktug.or.kr',
+              'http://ftp.ktug.or.kr/KTUG/texlive/2012/tlpkg/texlive.tlpdb.xz',
+              'texlive-ktug.tlpdb')
+  print "done.\n"
 elsif ARGV[0] == 'fetch-tlpdb' then
   print 'Downloading the TeX Live package database ... '
   $stdout.flush
-  fetch_tlpdb('texlive.tlpdb')
+  fetch_tlpdb('dante.ctan.org',
+              '/get/systems/texlive/tlnet/tlpkg/texlive.tlpdb.xz',
+              'texlive.tlpdb')
   print "done.\n"
 elsif ARGV[0] == 'show' then
   if ARGV.size < 2 then
