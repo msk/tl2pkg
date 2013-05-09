@@ -125,7 +125,7 @@ class TLPackage
     else
       comment = ''
     end
-    
+
     open('Makefile', 'w') do |file|
       file << <<MAKEFILE_HEADER
 # $NetBSD$
